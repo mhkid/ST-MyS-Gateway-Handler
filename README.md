@@ -1,2 +1,2 @@
-# iot
-Home IoT senors on MySenors framework
+# IoT
+Home IoT senors on MySensors framework
