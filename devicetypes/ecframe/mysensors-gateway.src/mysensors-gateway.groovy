@@ -37,12 +37,6 @@ metadata {
 		input("gatewayPort", "text", title: "Gateway Port", description: "Enter Gateway Port (80)", required: true, displayDuringSetup: true)
 		input("gatewayURL", "string", title:"URL Path", description: "Rest of the URL, include forward slash.", displayDuringSetup: true)
 		input(name: "httpPostGet", type: "enum", title: "POST or GET", options: ["POST","GET"], required: true, displayDuringSetup: true)
-/*		section() {child
-			input("httpAuth", "bool", title:"Requires User Auth?", description: "Choose if the HTTP requires basic authentication", defaultValue: false, required: true, displayDuringSetup: true)
-			input("httpUser", "string", title:"HTTP User", description: "Enter your basic username", required: false, displayDuringSetup: true)
-			input("httpPassword", "string", title:"HTTP Password", description: "Enter your basic password", required: false, displayDuringSetup: true)	
-	    }
-*/
 
 	// Tile Definitions
 	tiles (scale: 2){
@@ -55,11 +49,11 @@ metadata {
 		}
 
 		childDeviceTiles("all")
-//        childDeviceTile("TempHumidity", "TempHumidity", childTileName: "TempHumidity")
 	}
 
 	}
 }
+
 
 // parse events into attributes
 def parse(String description) {
@@ -89,48 +83,59 @@ def parse(String description) {
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
-		sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
+        // don't process internal commands at this point.  Later implementation
+        if (command != 3) {
+			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
         
-        log.debug "sensorDeviceId: ${sensorDeviceId}"
-
-        childFound = findChild(sensorDeviceId) 
-        try {
-        	if (!childFound) {
-        		//log.debug "child doesn't exist"
-            	childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
-            	if (!childCreated) {
-					throw new Exception("Child device not created");
-            	}
+        	log.debug "sensorDeviceId: ${sensorDeviceId}"
+        
+        	childFound = findChild(sensorDeviceId) 
+        	try {
+        		if (!childFound) {
+                	// Sensor presentation message
+                	if (command == 0) {
+                		// Create the sensor
+	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+    	        		if (!childCreated) {
+	                        log.error "Child sensor ${sensorDeviceId} not created"
+							throw new Exception("Child sensor ${sensorDeviceId} not created");
+        	    		}
+            	    }
+                	else {
+                		log.error "Child sensor ${sensorDeviceId} doesn't exist"
+        				throw new Exception("Child sensor ${sensorDeviceId} doesn't exist");
+                	}
+        		}
+        		else {
+        			//log.debug "child exists"
+                	//log.debug "command: ${command}"
+                	// childs exists so check to see if this is an update to sensor value
+        			if (command == 1) {
+	                    // this is an update to a sensor value, so build the event map
+    	        		eventMap = buildEventMap(sensorDeviceId, type, payload)
+        	            //log.debug "eventMap: ${eventMap.name} | ${eventMap.value}"
+	
+						try{
+							childDevices.each {
+        		    			//log.debug "Looking for child with deviceNetworkID = ${sensorDeviceId} against ${it.deviceNetworkId}"
+            		    		if (it.deviceNetworkId == sensorDeviceId) {
+                					childSensorDevice = it
+                    				//log.debug "Found a match!!!"
+                				}
+            				}
+        				}
+           				catch (e) {
+           					log.error "Error finding child after building map: ${e}"
+           				}
+                    	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+                    	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+            		}
+        		}
         	}
-        	else {
-        		//log.debug "child exists"
-                //log.debug "command: ${command}"
-                // childs exists so check to see if this is an update to sensor value
-        		if (command == 1) {
-                    // this is an update to a sensor value, so build the event map
-            		eventMap = buildEventMap(sensorDeviceId, type, payload)
-                    //log.debug "eventMap: ${eventMap.name} | ${eventMap.value}"
-
-					try{
-						childDevices.each {
-        	    			//log.debug "Looking for child with deviceNetworkID = ${sensorDeviceId} against ${it.deviceNetworkId}"
-            	    		if (it.deviceNetworkId == sensorDeviceId) {
-                				childSensorDevice = it
-                    			//log.debug "Found a match!!!"
-                			}
-            			}
-        			}
-           			catch (e) {
-           				log.error "Error finding child after building map: ${e}"
-           			}
-                    log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-                    childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
-            	}
+        	catch (e) {
+        		log.error "Error processing sensor payload: ${e}"
         	}
-        }
-        catch (e) {
-        	log.error "Error processing sensor payload: ${e}"
-        }
+        }  // command != 3
 	return
     }
 
@@ -236,7 +241,6 @@ def Map processTempHumidity(String value) {
     	log.error "processTempHumidty error: ${e}"
     }
     
-    
     mapReturn.put('name', sensorAttribute)
     mapReturn.put('value', sensorData[1])
 
@@ -255,7 +259,10 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
         {
         	def deviceHandlerName = ""
         	switch (deviceType) {
-				case 23:              // MySensors V_CUSTOM
+                case 1:               // MySensors S_MOTION
+                	deviceHandlerName = "MySensors Motion Sensor"
+                	break
+				case 23:              // MySensors s_CUSTOM
               		deviceHandlerName = "MySensors Temperature Sensor" 
                 	break
 				default: 
@@ -276,48 +283,13 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
             }
     	} catch (e) {
         	log.error "Child device creation failed with error = ${e}"
-//        	state.alertMessage = "Child device creation failed. Please make sure that the '${deviceHandlerName}' is installed and published."
-//	    	runIn(2, "sendAlert")
     	}
         
 	} 
-//    else 
-//    {
-//        state.alertMessage = "MySensors Gateway has not yet been fully configured. Click the 'Gear' icon, enter data for all fields, and click 'Done'"
-//        runIn(2, "sendAlert")
-//    }
     
     return status
   
 }
-
-// begin
-/*
-private getHostAddress() {
-    def ip = settings.ip
-    def port = settings.port
-    
-    log.debug "Using ip: ${ip} and port: ${port} for device: ${device.id}"
-    return ip + ":" + port
-}
-
-def sendEthernet(message) {
-	log.debug "Executing 'sendEthernet' ${message}"
-	if (settings.ip != null && settings.port != null) {
-        sendHubCommand(new physicalgraph.device.HubAction(
-            method: "POST",
-            path: "/${message}?",
-            headers: [ HOST: "${getHostAddress()}" ]
-        ))
-    }
-    else {
-        state.alertMessage = "MySensors Gateway Thing has not yet been fully configured.  Check settings and try again."
-        runIn(2, "sendAlert")   
-    }
-}
-*/
-// end
-
 
 def httpGatewayRequest() {
 	log.debug "httpGatewayRequest()"
