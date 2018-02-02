@@ -188,6 +188,10 @@ def Map buildEventMap(sensorDevice, type, payload) {
 	try {
 
 		switch (type) {
+        	case 16:           //MySensors V_TRIPPED
+            	mapResult = processMotion(payload)
+            	break
+        
         	case 24:           //MySensors V_VAR1
         		// Temperature / Humdity / Battery
              	mapResult = processTempHumidity(payload)
@@ -206,6 +210,34 @@ def Map buildEventMap(sensorDevice, type, payload) {
    }
 
 return mapResult
+}
+
+def Map processMotion(String value) {
+	
+    def sensorData = value.replaceAll('\n', '')
+    def mapReturn = [:]
+    
+	try {
+    	switch (sensorData) {
+        	case "0":
+				mapReturn.put('name', "inactive")
+    			mapReturn.put('value', "No Motion")
+                break
+            
+        	case "1":
+				mapReturn.put('name', "active")
+    			mapReturn.put('value', "Motion")
+                break
+
+			default:
+           		log.debug "unknown sensor value type motion: ${value}"
+        }
+    }
+    catch (e) {
+    	log.error "processMotion error: ${e}"
+    }
+    
+    return mapReturn
 }
 
 def Map processTempHumidity(String value) {
