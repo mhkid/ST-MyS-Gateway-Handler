@@ -93,17 +93,20 @@ def parse(String description) {
         	try {
         		if (!childFound) {
                 	// Sensor presentation message
-                	if (command == 0) {
+                	if (command == 0  && type !=17) {
                 		// Create the sensor
 	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
     	        		if (!childCreated) {
 	                        log.error "Child sensor ${sensorDeviceId} not created"
-							throw new Exception("Child sensor ${sensorDeviceId} not created");
+							//throw new Exception("Child sensor ${sensorDeviceId} not created");
         	    		}
+                        else {
+	                        log.info "Child sensor ${sensorDeviceId} created"
+                        }
             	    }
                 	else {
                 		log.error "Child sensor ${sensorDeviceId} doesn't exist"
-        				throw new Exception("Child sensor ${sensorDeviceId} doesn't exist");
+        				//throw new Exception("Child sensor ${sensorDeviceId} doesn't exist");
                 	}
         		}
         		else {
@@ -179,8 +182,8 @@ def Map buildEventMap(sensorDevice, type, payload) {
     String sensorAttribute = ""
     String sensorValue = ""
    
-//    log.debug "type: " + type
-//    log.debug "payload: " + payload
+    log.debug "type: " + type
+    log.debug "payload: " + payload
 
 	try {
 
@@ -253,7 +256,7 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
 
     if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
     {
-		log.debug "createChildDevice:  Creating Child Device ${device.deviceNetworkId} ${deviceName}:${deviceId}:${deviceType}"
+		log.debug "createChildDevice:  Creating Child Device ${deviceName} | ${deviceId} | ${deviceType}"
 
 		try 
         {
@@ -271,7 +274,7 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
             log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
             if (deviceHandlerName != "") {
                 log.debug "adding device"
-				addChildDevice(deviceHandlerName, "${deviceId}", location.hubs[0],
+				addChildDevice(deviceHandlerName, "${deviceId}", null,
 		      		[completedSetup: true, label: "${deviceName}", 
                 	isComponent: false, componentLabel: "${deviceName}"])
 
