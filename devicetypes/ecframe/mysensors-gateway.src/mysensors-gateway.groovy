@@ -92,7 +92,7 @@ def parse(String description) {
         	childFound = findChild(sensorDeviceId) 
         	try {
         		if (!childFound) {
-                	// Sensor presentation message
+                	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
                 	if (command == 0  && type !=17) {
                 		// Create the sensor
 	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
@@ -110,20 +110,15 @@ def parse(String description) {
                 	}
         		}
         		else {
-        			//log.debug "child exists"
-                	//log.debug "command: ${command}"
                 	// childs exists so check to see if this is an update to sensor value
         			if (command == 1) {
 	                    // this is an update to a sensor value, so build the event map
     	        		eventMap = buildEventMap(sensorDeviceId, type, payload)
-        	            //log.debug "eventMap: ${eventMap.name} | ${eventMap.value}"
 	
 						try{
 							childDevices.each {
-        		    			//log.debug "Looking for child with deviceNetworkID = ${sensorDeviceId} against ${it.deviceNetworkId}"
             		    		if (it.deviceNetworkId == sensorDeviceId) {
                 					childSensorDevice = it
-                    				//log.debug "Found a match!!!"
                 				}
             				}
         				}
@@ -220,13 +215,13 @@ def Map processMotion(String value) {
 	try {
     	switch (sensorData) {
         	case "0":
-				mapReturn.put('name', "inactive")
-    			mapReturn.put('value', "No Motion")
+				mapReturn.put('name', "motion")
+    			mapReturn.put('value', "inactive")
                 break
             
         	case "1":
-				mapReturn.put('name', "active")
-    			mapReturn.put('value', "Motion")
+				mapReturn.put('name', "motion")
+    			mapReturn.put('value', "active")
                 break
 
 			default:

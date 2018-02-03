@@ -17,14 +17,19 @@
 metadata {
 	definition (name: "MySensors Motion Sensor", namespace: "ecframe", author: "Eric Frame") {
 		capability "Motion Sensor"
+        capability "Battery"
         capability "Sensor"
 	}
 
 	tiles(scale: 2) {
 		multiAttributeTile(name:"motion", type: "generic"){
 			tileAttribute ("device.motion", key: "PRIMARY_CONTROL") {
-				attributeState "active", label:'${name}', icon:"st.motion.motion.active", backgroundColor:"#00A0DC"
-				attributeState "inactive", label:'${name}', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
+				attributeState "active", label:"Motion", icon:"st.motion.motion.active", backgroundColor:"#00A0DC"
+				attributeState "inactive", label:"No Motion", icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
+            }
+            
+            tileAttribute("device.battery", key: "SECONDARY_CONTROL") {
+            	attributeState ("battery", label:'${currentValue}% Battery')
             }
         }
 	}
