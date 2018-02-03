@@ -84,13 +84,77 @@ def parse(String description) {
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
         // don't process internal commands at this point.  Later implementation
-        if (command != 3) {
+//        if (command != 3) {
 			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
         
         	log.debug "sensorDeviceId: ${sensorDeviceId}"
         
-        	childFound = findChild(sensorDeviceId) 
-        	try {
+        	childFound = checkChildExistence(sensorDeviceId) 
+            
+            try {
+        		if (!childFound && command == 0) {
+                	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
+                	if (type != 17) {
+                		// Create the sensor
+	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+    	        		if (!childCreated) {
+	                        log.error "Child sensor ${sensorDeviceId} not created"
+							throw new Exception("Child sensor ${sensorDeviceId} not created");
+        	    		}
+                        else {
+	                        log.info "Child sensor ${sensorDeviceId} created"
+                        }
+            	    }
+        		}
+                else {  // !childFound && command == 0
+                	// sensor exists, get the device and process the command
+                   	def childSensorDevice = null
+					def eventMap = null
+    				def deviceType = null
+
+					try {
+						childDevices.each {
+						if (it.deviceNetworkId == sensorDeviceId) {
+							childSensorDevice = it
+						}
+					}
+        
+						deviceType = childSensorDevice.getTypeName()
+						//eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
+					}
+					catch (e) {
+						log.error "Error finding child after building map: ${e}"
+					}
+
+                    
+                    switch (command) {
+                    	case 0:				// Presentation
+                        	processPresentationCommand()
+                        	break
+                            
+                        case 1:				// Set
+                        	processSetCommand()
+                        	break
+                            
+                        case 2:				// Request
+                        	processReqCommand()
+                        	break
+                            
+                        case 3:				// Internal
+                        	processInternalCommand()
+                        	break
+                            
+                        default:			// others
+                        	log.debug "Unknown command: ${command}"
+                        	
+                    }
+                }
+            }
+            catch (e) {
+            	log.error "Error in parse: ${e}"
+            }
+            
+ /*       	try {
         		if (!childFound) {
                 	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
                 	if (command == 0  && type !=17) {
@@ -132,7 +196,8 @@ def parse(String description) {
         	catch (e) {
         		log.error "Error processing sensor payload: ${e}"
         	}
-        }  // command != 3
+*/
+//        }  // command != 3
 	return
     }
 
@@ -146,7 +211,7 @@ def refresh() {
 	log.debug "Executing 'refresh()'"
 }
 
-def boolean findChild(childSensor) {
+def boolean checkChildExistence(childSensor) {
     def exists = false
 	//log.debug "finding: ${childSensor}"
 
@@ -160,11 +225,15 @@ def boolean findChild(childSensor) {
        	}
 	}
    	catch (e) {
-       	log.error "findChild error: " + e
+       	log.error "checkChildExistence error: " + e
     }
     
 	return exists
 
+}
+
+def processPresentationCommand() {
+	log.info "processPresentationCommand stub"
 }
 
 def processSetCommand(sensorDeviceId, type, payload) {
@@ -194,7 +263,12 @@ def processSetCommand(sensorDeviceId, type, payload) {
     log.debug "Device Type: ${deviceType}"
 }
 
+def processReqCommand() {
+	log.info "processReqCommand stub"
+}
+
 def processInternalCommand(sensorDeviceId, type, payload) {
+	log.info "processInternalCommand stub"
 
 	def childSensorDevice = null
     def eventMap = null
