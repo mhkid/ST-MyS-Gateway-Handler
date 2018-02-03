@@ -120,6 +120,7 @@ def parse(String description) {
                         	break
                             
                         case 3:
+                        	processInternalCommand(sensorDeviceId, type, payload)
                         	break
                             
                         default:
@@ -171,25 +172,37 @@ def processSetCommand(sensorDeviceId, type, payload) {
 
     def childSensorDevice = null
 	def eventMap = null
+    def deviceType = null
 
-	eventMap = buildEventMap(sensorDeviceId, type, payload)
-	
-	try{
+	try {
 		childDevices.each {
 			if (it.deviceNetworkId == sensorDeviceId) {
 					childSensorDevice = it
 			}
 		}
+        
+		deviceType = childSensorDevice.getTypeName()
+		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
 	}
 	catch (e) {
 		log.error "Error finding child after building map: ${e}"
 	}
+
+	    
 	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
 	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
-	
+    log.debug "Device Type: ${deviceType}"
 }
 
-def Map buildEventMap(sensorDevice, type, payload) {
+def processInternalCommand(sensorDeviceId, type, payload) {
+
+	def childSensorDevice = null
+    def eventMap = null
+    
+    
+}
+
+def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
 
 	def mapResult = [:]
 
@@ -198,12 +211,12 @@ def Map buildEventMap(sensorDevice, type, payload) {
     String sensorAttribute = ""
     String sensorValue = ""
    
-    log.debug "type: " + type
+    log.debug "commandType: " + commandType
     log.debug "payload: " + payload
 
 	try {
 
-		switch (type) {
+		switch (commandType) {
         	case 16:           //MySensors V_TRIPPED
             	mapResult = processMotion(payload)
             	break
@@ -214,7 +227,7 @@ def Map buildEventMap(sensorDevice, type, payload) {
              	break
 
 		  	default:
-             	log.debug "type unknown: ${type}"
+             	log.debug "type unknown: ${commandType}"
 
 		}   
 
