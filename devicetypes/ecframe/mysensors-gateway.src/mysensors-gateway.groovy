@@ -78,8 +78,8 @@ def parse(String description) {
         def payload = param[5]
 		def childFound = false
         def childCreated = false
-        def childSensorDevice = null
-        def eventMap = null
+        //def childSensorDevice = null
+        //def eventMap = null
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
@@ -111,23 +111,21 @@ def parse(String description) {
         		}
         		else {
                 	// childs exists so check to see if this is an update to sensor value
-        			if (command == 1) {
-	                    // this is an update to a sensor value, so build the event map
-    	        		eventMap = buildEventMap(sensorDeviceId, type, payload)
-	
-						try{
-							childDevices.each {
-            		    		if (it.deviceNetworkId == sensorDeviceId) {
-                					childSensorDevice = it
-                				}
-            				}
-        				}
-           				catch (e) {
-           					log.error "Error finding child after building map: ${e}"
-           				}
-                    	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-                    	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
-            		}
+                    switch (command) {
+                    	case 1:
+                        	processSetCommand(sensorDeviceId, type, payload)
+                        	break
+                            
+                        case 2:
+                        	break
+                            
+                        case 3:
+                        	break
+                            
+                        default:
+                        	log.debug "command unknown: ${command}"
+                            
+                    }
         		}
         	}
         	catch (e) {
@@ -166,6 +164,29 @@ def boolean findChild(childSensor) {
     
 	return exists
 
+}
+
+def processSetCommand(sensorDeviceId, type, payload) {
+	// Set is an update to a sensor value, so build the event map
+
+    def childSensorDevice = null
+	def eventMap = null
+
+	eventMap = buildEventMap(sensorDeviceId, type, payload)
+	
+	try{
+		childDevices.each {
+			if (it.deviceNetworkId == sensorDeviceId) {
+					childSensorDevice = it
+			}
+		}
+	}
+	catch (e) {
+		log.error "Error finding child after building map: ${e}"
+	}
+	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+	
 }
 
 def Map buildEventMap(sensorDevice, type, payload) {
