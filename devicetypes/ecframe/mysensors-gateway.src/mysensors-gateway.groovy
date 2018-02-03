@@ -78,8 +78,9 @@ def parse(String description) {
         def payload = param[5]
 		def childFound = false
         def childCreated = false
-        //def childSensorDevice = null
+        def childSensorDevice = null
         //def eventMap = null
+		def deviceType = null
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
@@ -108,9 +109,6 @@ def parse(String description) {
         		}
                 else {  // !childFound && command == 0
                 	// sensor exists, get the device and process the command
-                   	def childSensorDevice = null
-					def eventMap = null
-    				def deviceType = null
 
 					try {
 						childDevices.each {
@@ -125,7 +123,6 @@ def parse(String description) {
 					catch (e) {
 						log.error "Error finding child after building map: ${e}"
 					}
-
                     
                     switch (command) {
                     	case 0:				// Presentation
@@ -133,7 +130,7 @@ def parse(String description) {
                         	break
                             
                         case 1:				// Set
-                        	processSetCommand()
+                        	processSetCommand(deviceType, type, payload)
                         	break
                             
                         case 2:				// Request
@@ -236,10 +233,22 @@ def processPresentationCommand() {
 	log.info "processPresentationCommand stub"
 }
 
-def processSetCommand(sensorDeviceId, type, payload) {
-	// Set is an update to a sensor value, so build the event map
+def processSetCommand(deviceType, commandType, payload) {
+	// Process based on device handler
+    switch (deviceType) {
+    	case "MySensors Motion Sensor":
+        	setMotionSensor()
+        	break
+            
+        case "MySensors Temperature Sensor":
+            break
+            
+        default:
+        	log.error "Unknown deviceType: ${deviceType}"
+    }
 
-    def childSensorDevice = null
+/*
+	def childSensorDevice = null
 	def eventMap = null
     def deviceType = null
 
@@ -261,6 +270,11 @@ def processSetCommand(sensorDeviceId, type, payload) {
 	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
 	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
     log.debug "Device Type: ${deviceType}"
+*/
+}
+
+def setMotionSensor() {
+
 }
 
 def processReqCommand() {
