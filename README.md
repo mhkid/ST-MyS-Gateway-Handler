@@ -1,5 +1,5 @@
 # IoT
-Home IoT senors on MySensors framework
+Home IoT senors on MySensors framework and SmartThings platform
 
 ## Summary
 This is a home IoT project using the arduino, esp8266, and raspberry pi (future).  This is based on the MySensors framework found at mysensors.org.  This also uses the SmartThings hub as the central controller between homemade IoT devices and commercially available IoT devices such as light switches, reed contact sensors, cameras, etc.  The SmartThings hub was what started all this for me.  I bought that and started installing light switches, contact sensors, etc.  When I discovered I could build my own home security system that led me to microcontrollers and the arduino hardware.  With my background as a software engineer/architect this was a fun way to blend that with my love for tinkering and building things around the house.
