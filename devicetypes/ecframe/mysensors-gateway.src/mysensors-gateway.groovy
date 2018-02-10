@@ -150,7 +150,7 @@ def boolean findChild(childSensor) {
     def exists = false
 	//log.debug "finding: ${childSensor}"
 
-    // loop through all the child devices to see if this one already exists
+  // loop through all the child devices to see if this one already exists
 	try {
         childDevices.each {
            	if (it.deviceNetworkId == childSensor) {
