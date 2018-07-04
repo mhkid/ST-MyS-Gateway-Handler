@@ -19,7 +19,7 @@
  *    2017-07-30  Eric Frame     Original Creation
  */
  
-import groovy.json.JsonSlurper
+//import groovy.json.JsonSlurper
 
 metadata {
 	definition (name: "MySensors Gateway", namespace: "ecframe", author: "Eric Frame") {
@@ -54,13 +54,12 @@ metadata {
 	}
 }
 
-
 // parse events into attributes
 def parse(String description) {
     def msg = parseLanMessage(description);
     def header = msg.header
     def body = msg.body
-    def sensorDeviceId
+    def sensorNodeId
     def evt = [:]
     def children = device.childDevices
     
@@ -83,44 +82,47 @@ def parse(String description) {
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
-        // don't process internal commands at this point.  Later implementation
-        if (command != 3) {
-			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
+		// don't process internal commands at this point.  Later implementation
+//        if (command != 3) {
+			sensorNodeId = device.deviceNetworkId + "-" + node
+			sensorId = device.deviceNetworkId + "-" + node + "-" + sensor
         
-        	log.debug "sensorDeviceId: ${sensorDeviceId}"
+        	log.debug "sensorNodeId: ${sensorNodeId}"
+        	log.debug "sensorId: ${sensorId}"
         
-        	childFound = findChild(sensorDeviceId) 
+        	childFound = findChild(sensorNodeId) 
         	try {
         		if (!childFound) {
                 	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
+                    
                 	if (command == 0  && type !=17) {
                 		// Create the sensor
-	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+	            		childCreated = createChildDevice(sensorNodeId, payload, type, node, sensor)
     	        		if (!childCreated) {
-	                        log.error "Child sensor ${sensorDeviceId} not created"
-							//throw new Exception("Child sensor ${sensorDeviceId} not created");
+	                        log.error "Child sensor ${sensorNodeId} not created"
+							//throw new Exception("Child sensor ${sensorNodeId} not created");
         	    		}
                         else {
-	                        log.info "Child sensor ${sensorDeviceId} created"
+	                        log.info "Child sensor ${sensorNodeId} created"
                         }
             	    }
                 	else {
-                		log.error "Child sensor ${sensorDeviceId} doesn't exist"
-        				//throw new Exception("Child sensor ${sensorDeviceId} doesn't exist");
+                		log.error "Child sensor ${sensorNodeId} doesn't exist"
+        				//throw new Exception("Child sensor ${sensorNodeId} doesn't exist");
                 	}
         		}
         		else {
                 	// childs exists so check to see if this is an update to sensor value
                     switch (command) {
                     	case 1:
-                        	processSetCommand(sensorDeviceId, type, payload)
+                        	processSetCommand(sensorNodeId, type, payload)
                         	break
                             
                         case 2:
                         	break
                             
                         case 3:
-                        	processInternalCommand(sensorDeviceId, type, payload)
+                        	processInternalCommand(sensorNodeId, type, payload)
                         	break
                             
                         default:
@@ -132,7 +134,7 @@ def parse(String description) {
         	catch (e) {
         		log.error "Error processing sensor payload: ${e}"
         	}
-        }  // command != 3
+//        }  // command != 3
 	return
     }
 
@@ -150,7 +152,7 @@ def boolean findChild(childSensor) {
     def exists = false
 	//log.debug "finding: ${childSensor}"
 
-  // loop through all the child devices to see if this one already exists
+    // loop through all the child devices to see if this one already exists
 	try {
         childDevices.each {
            	if (it.deviceNetworkId == childSensor) {
@@ -167,7 +169,7 @@ def boolean findChild(childSensor) {
 
 }
 
-def processSetCommand(sensorDeviceId, type, payload) {
+def processSetCommand(sensorNodeId, type, payload) {
 	// Set is an update to a sensor value, so build the event map
 
     def childSensorDevice = null
@@ -176,13 +178,13 @@ def processSetCommand(sensorDeviceId, type, payload) {
 
 	try {
 		childDevices.each {
-			if (it.deviceNetworkId == sensorDeviceId) {
+			if (it.deviceNetworkId == sensorNodeId) {
 					childSensorDevice = it
 			}
 		}
         
 		deviceType = childSensorDevice.getTypeName()
-		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
+		eventMap = buildEventMap(sensorNodeId, deviceType, 2, type, payload)
 	}
 	catch (e) {
 		log.error "Error finding child after building map: ${e}"
@@ -194,7 +196,7 @@ def processSetCommand(sensorDeviceId, type, payload) {
     log.debug "Device Type: ${deviceType}"
 }
 
-def processInternalCommand(sensorDeviceId, type, payload) {
+def processInternalCommand(sensorNodeId, type, payload) {
 
 	def childSensorDevice = null
     def eventMap = null
