@@ -60,6 +60,7 @@ def parse(String description) {
     def header = msg.header
     def body = msg.body
     def sensorNodeId
+    def sensorId
     def evt = [:]
     def children = device.childDevices
     
@@ -94,8 +95,9 @@ def parse(String description) {
         	try {
         		if (!childFound) {
                 	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
+                    log.error "Child sensor ${sensorNodeId} doesn't exist";
                     
-                	if (command == 0  && type !=17) {
+					if (command == 0  && type == 6) {
                 		// Create the sensor
 	            		childCreated = createChildDevice(sensorNodeId, payload, type, node, sensor)
     	        		if (!childCreated) {
@@ -113,6 +115,8 @@ def parse(String description) {
         		}
         		else {
                 	// childs exists so check to see if this is an update to sensor value
+                    log.debug "Child ${sensorNodeId} exists: "
+                    /*
                     switch (command) {
                     	case 1:
                         	processSetCommand(sensorNodeId, type, payload)
@@ -129,6 +133,7 @@ def parse(String description) {
                         	log.debug "command unknown: ${command}"
                             
                     }
+                    */
         		}
         	}
         	catch (e) {
@@ -150,11 +155,13 @@ def refresh() {
 
 def boolean findChild(childSensor) {
     def exists = false
-	//log.debug "finding: ${childSensor}"
+	log.debug "finding: ${childSensor}"
 
     // loop through all the child devices to see if this one already exists
 	try {
+    	log.debug "before childDevices.each"
         childDevices.each {
+            log.debug "device: ${it.deviceNetworkId}"
            	if (it.deviceNetworkId == childSensor) {
                 // sensor device exists
                 exists = true
@@ -328,7 +335,7 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
                 case 1:               // MySensors S_MOTION
                 	deviceHandlerName = "MySensors Motion Sensor"
                 	break
-				case 23:              // MySensors s_CUSTOM
+				case 6:              // MySensors S_TEMP
               		deviceHandlerName = "MySensors Temperature Sensor" 
                 	break
 				default: 
