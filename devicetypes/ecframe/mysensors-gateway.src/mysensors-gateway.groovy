@@ -222,7 +222,7 @@ def processInternalCommand(sensorNodeId, type, payload) {
 
 	    
 	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+	//childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value)
     log.debug "Device Type: ${deviceType}"
 }
 
@@ -273,34 +273,6 @@ def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
    }
 
 return mapResult
-}
-
-def Map processMotion(String value) {
-	
-    def sensorData = value.replaceAll('\n', '')
-    def mapReturn = [:]
-    
-	try {
-    	switch (sensorData) {
-        	case "0":
-				mapReturn.put('name', "motion")
-    			mapReturn.put('value', "inactive")
-                break
-            
-        	case "1":
-				mapReturn.put('name', "motion")
-    			mapReturn.put('value', "active")
-                break
-
-			default:
-           		log.debug "unknown sensor value type motion: ${value}"
-        }
-    }
-    catch (e) {
-    	log.error "processMotion error: ${e}"
-    }
-    
-    return mapReturn
 }
 
 def Map processTemperature(String value) {
