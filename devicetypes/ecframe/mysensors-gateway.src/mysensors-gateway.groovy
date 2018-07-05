@@ -95,14 +95,12 @@ def parse(String description) {
         	try {
         		if (!childFound) {
                 	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
-                    log.error "Child sensor ${sensorNodeId} doesn't exist";
                     
-					if (command == 0  && type == 6) {
-                		// Create the sensor
+					if (command == 3  && type == 11) {
+                		// Create the sensor node
 	            		childCreated = createChildDevice(sensorNodeId, payload, type, node, sensor)
     	        		if (!childCreated) {
-	                        log.error "Child sensor ${sensorNodeId} not created"
-							//throw new Exception("Child sensor ${sensorNodeId} not created");
+							throw new Exception("Child sensor ${sensorNodeId} not created");
         	    		}
                         else {
 	                        log.info "Child sensor ${sensorNodeId} created"
@@ -114,18 +112,18 @@ def parse(String description) {
                 	}
         		}
         		else {
-                	// childs exists so check to see if this is an update to sensor value
+                	// childs exists so update sensor value
                     log.debug "Child ${sensorNodeId} exists: "
-                    /*
-                    switch (command) {
-                    	case 1:
+
+					switch (command) {
+                    	case 1:       // set value
                         	processSetCommand(sensorNodeId, type, payload)
                         	break
                             
                         case 2:
                         	break
                             
-                        case 3:
+                        case 3:      // internal command
                         	processInternalCommand(sensorNodeId, type, payload)
                         	break
                             
@@ -133,7 +131,6 @@ def parse(String description) {
                         	log.debug "command unknown: ${command}"
                             
                     }
-                    */
         		}
         	}
         	catch (e) {
@@ -191,7 +188,7 @@ def processSetCommand(sensorNodeId, type, payload) {
 		}
         
 		deviceType = childSensorDevice.getTypeName()
-		eventMap = buildEventMap(sensorNodeId, deviceType, 2, type, payload)
+		eventMap = buildEventMap(sensorNodeId, deviceType, 1, type, payload)
 	}
 	catch (e) {
 		log.error "Error finding child after building map: ${e}"
@@ -205,10 +202,28 @@ def processSetCommand(sensorNodeId, type, payload) {
 
 def processInternalCommand(sensorNodeId, type, payload) {
 
-	def childSensorDevice = null
-    def eventMap = null
-    
-    
+    def childSensorDevice = null
+	def eventMap = null
+    def deviceType = null
+
+	try {
+		childDevices.each {
+			if (it.deviceNetworkId == sensorNodeId) {
+					childSensorDevice = it
+			}
+		}
+        
+		deviceType = childSensorDevice.getTypeName()
+		eventMap = buildEventMap(sensorNodeId, deviceType, 3, type, payload)
+	}
+	catch (e) {
+		log.error "Error finding child after building map: ${e}"
+	}
+
+	    
+	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+    log.debug "Device Type: ${deviceType}"
 }
 
 def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
@@ -225,20 +240,30 @@ def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
 
 	try {
 
-		switch (commandType) {
-        	case 16:           //MySensors V_TRIPPED
-            	mapResult = processMotion(payload)
-            	break
+        if (command==1) {
+			switch (commandType) {
+        		case 0:           //V_TEMP
+             		mapResult = processTemperature(payload)
+             		break
+                
+        		case 1:           //V_HUM
+            		mapResult = processHumidity(payload)
+            		break
         
-        	case 24:           //MySensors V_VAR1
-        		// Temperature / Humdity / Battery
-             	mapResult = processTempHumidity(payload)
-             	break
+		  		default:
+             		log.debug "type unknown: ${commandType}"
 
-		  	default:
-             	log.debug "type unknown: ${commandType}"
-
-		}   
+			}   
+        } else if (command==3) {
+			switch (commandType) {
+        		case 0:           //I_BATTERY_LEVEL
+             		mapResult = processBatteryLevel(payload)
+             		break
+                    
+		  		default:
+             		log.debug "type unknown: ${commandType}"
+			}   
+        }
 
 		log.debug "mapResult: ${mapResult.name} | ${mapResult.value}"
 
@@ -276,6 +301,36 @@ def Map processMotion(String value) {
     }
     
     return mapReturn
+}
+
+def Map processTemperature(String value) {
+    
+    def mapReturn = [:]
+    
+    mapReturn.put('name', 'temperature')
+    mapReturn.put('value', value)
+
+	return mapReturn
+}
+
+def Map processHumidity(String value) {
+    
+    def mapReturn = [:]
+    
+    mapReturn.put('name', 'humidity')
+    mapReturn.put('value', value)
+
+	return mapReturn
+}
+
+def Map processBatteryLevel(String value) {
+    
+    def mapReturn = [:]
+    
+    mapReturn.put('name', 'battery')
+    mapReturn.put('value', value)
+
+	return mapReturn
 }
 
 def Map processTempHumidity(String value) {
@@ -331,16 +386,14 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
 		try 
         {
         	def deviceHandlerName = ""
-        	switch (deviceType) {
-                case 1:               // MySensors S_MOTION
-                	deviceHandlerName = "MySensors Motion Sensor"
+            switch (deviceName.trim()) {
+            	case "TempNode":
+					deviceHandlerName = "MySensors Temperature Node" 
                 	break
-				case 6:              // MySensors S_TEMP
-              		deviceHandlerName = "MySensors Temperature Sensor" 
-                	break
-				default: 
-                	log.error "No Child Device Handler case for ${deviceName}"
-      		}
+                default:
+               		log.error "No Child Device Handler case for ${deviceName}"
+           	}
+                    
             log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
             if (deviceHandlerName != "") {
                 log.debug "adding device"
