@@ -17,10 +17,9 @@
  *    Date        Who            What
  *    ----        ---            ----
  *    2017-07-30  Eric Frame     Original Creation
+ *    2018-01-17  Eric Frame	 Gateway refactor and cleanup
  */
  
-import groovy.json.JsonSlurper
-
 metadata {
 	definition (name: "MySensors Gateway", namespace: "ecframe", author: "Eric Frame") {
         capability "Configuration"
@@ -67,7 +66,7 @@ def parse(String description) {
 	log.debug " "
 	log.debug "header: $header"
     log.debug "Gateway message: $body"
-    
+/*    
     if (body) {
         def param = body.split(";")
         def node = param[0]
@@ -135,7 +134,7 @@ def parse(String description) {
         }  // command != 3
 	return
     }
-
+*/
 }
 
 def configure() {
