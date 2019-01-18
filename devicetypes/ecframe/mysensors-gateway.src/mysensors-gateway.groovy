@@ -66,7 +66,7 @@ def parse(String description) {
 	log.debug " "
 	log.debug "header: $header"
     log.debug "Gateway message: $body"
-/*    
+
     if (body) {
         def param = body.split(";")
         def node = param[0]
@@ -82,7 +82,8 @@ def parse(String description) {
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
-        // don't process internal commands at this point.  Later implementation
+        /*
+		// don't process internal commands at this point.  Later implementation
         if (command != 3) {
 			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
         
@@ -132,9 +133,10 @@ def parse(String description) {
         		log.error "Error processing sensor payload: ${e}"
         	}
         }  // command != 3
+		*/
 	return
     }
-*/
+
 }
 
 def configure() {
