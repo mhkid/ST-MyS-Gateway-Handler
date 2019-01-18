@@ -82,6 +82,21 @@ def parse(String description) {
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
+		try {
+			switch (command) {
+        		case 0: //Presentation
+					log.debug "Presentation message"
+	            	break
+        
+		  		default:
+             		log.debug "command not implemented: ${command}"
+
+			}   
+		}
+   		catch (Exception e) {
+       		log.error "switch try/catch command"
+   		}
+		
         /*
 		// don't process internal commands at this point.  Later implementation
         if (command != 3) {
