@@ -85,9 +85,21 @@ def parse(String description) {
 		try {
 			switch (command) {
         		case 0: //Presentation
-					log.debug "Presentation message"
+					log.debug "Presentation command"
 	            	break
         
+        		case 1: //Set
+					log.debug "Set command"
+	            	break
+
+        		case 2: //Request
+					log.debug "Request command"
+	            	break
+					
+        		case 3: //Request
+					log.debug "Internal command"
+	            	break
+					
 		  		default:
              		log.debug "command not implemented: ${command}"
 
