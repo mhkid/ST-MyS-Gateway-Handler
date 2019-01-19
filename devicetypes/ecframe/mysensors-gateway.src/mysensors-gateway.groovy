@@ -218,7 +218,7 @@ def processSetCommand(sensorDeviceId) {
 //		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
 	}
 	catch (e) {
-		log.error "Error finding child after building map: ${e}"
+		log.error "Error finding child device: ${e}"
 	}
 
 	    
