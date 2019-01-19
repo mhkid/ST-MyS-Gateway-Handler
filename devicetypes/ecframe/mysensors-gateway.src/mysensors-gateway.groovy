@@ -199,30 +199,33 @@ def boolean findChild(childSensor) {
 
 def processPresentationCommand(sensorDeviceId, node, sensor, payload, type) 
 {
-	log.debug "Processing set command"
+	log.debug "Processing present command"
 
 	def childFound = false
 	def childCreated = false
 
 	try 
 	{
-		childFound = findChild(sensorDeviceId)
-		if (!childFound) 
+	    if (sensor != 255)  // don't do this for the gateway node
 		{
-			log.debug "Sensor not found, createing a new one."
-			childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
-       		if (!childCreated) 
+			childFound = findChild(sensorDeviceId)
+			if (!childFound) 
 			{
-                log.error "Child sensor ${sensorDeviceId} not created"
-    		}
-            else 
+				log.debug "Sensor not found, createing a new one."
+				childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+       			if (!childCreated) 
+				{
+                	log.error "Child sensor ${sensorDeviceId} not created"
+    			}
+            	else 
+				{
+	            	log.info "Child sensor ${sensorDeviceId} created"
+            	}
+			} 
+			else 
 			{
-	            log.info "Child sensor ${sensorDeviceId} created"
-            }
-		} 
-		else 
-		{
-			log.debug "Sensor found"
+				log.debug "Sensor found"
+			}
 		}
 	}
 	catch (e) 
