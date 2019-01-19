@@ -200,6 +200,7 @@ def boolean findChild(childSensor) {
 def processPresentationCommand(sensorDeviceId, node, sensor, payload, type) 
 {
 	log.debug "Processing present command"
+	log.debug "node/sensor (${node}/${sensor})"
 
 	def childFound = false
 	def childCreated = false
