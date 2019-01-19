@@ -103,62 +103,6 @@ def parse(String description) {
    		catch (Exception e) {
        		log.error "switch try/catch command ${command}"
    		}
-		
-        /*
-		// don't process internal commands at this point.  Later implementation
-        if (command != 3) {
-			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
-        
-        	log.debug "sensorNodeId: ${sensorNodeId}"
-        	log.debug "sensorId: ${sensorId}"
-        
-        	childFound = findChild(sensorNodeId) 
-        	try {
-        		if (!childFound) {
-                	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
-                    
-					if (command == 3  && type == 11) {
-                		// Create the sensor node
-	            		childCreated = createChildDevice(sensorNodeId, payload, type, node, sensor)
-    	        		if (!childCreated) {
-							throw new Exception("Child sensor ${sensorNodeId} not created");
-        	    		}
-                        else {
-	                        log.info "Child sensor ${sensorNodeId} created"
-                        }
-            	    }
-                	else {
-                		log.error "Child sensor ${sensorNodeId} doesn't exist"
-        				//throw new Exception("Child sensor ${sensorNodeId} doesn't exist");
-                	}
-        		}
-        		else {
-                	// childs exists so update sensor value
-                    log.debug "Child ${sensorNodeId} exists: "
-
-					switch (command) {
-                    	case 1:       // set value
-                        	processSetCommand(sensorNodeId, type, payload)
-                        	break
-                            
-                        case 2:
-                        	break
-                            
-                        case 3:      // internal command
-                        	processInternalCommand(sensorNodeId, type, payload)
-                        	break
-                            
-                        default:
-                        	log.debug "command unknown: ${command}"
-                            
-                    }
-        		}
-        	}
-        	catch (e) {
-        		log.error "Error processing sensor payload: ${e}"
-        	}
-        }  // command != 3
-		*/
 	return
     }
 
