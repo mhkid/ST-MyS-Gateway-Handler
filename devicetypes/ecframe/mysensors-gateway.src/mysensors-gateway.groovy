@@ -61,11 +61,8 @@ def parse(String description) {
     def body = msg.body
     def sensorDeviceId
     def evt = [:]
-    def children = device.childDevices
     
 	log.debug " "
-//	  log.debug "header: $header"
-//    log.debug "Gateway message: $body"
 
     if (body) {
         def param = body.split(";")
@@ -75,10 +72,6 @@ def parse(String description) {
         def ack = param[3]
         def type = param[4].toInteger()
         def payload = param[5]
-		//def childFound = false
-        //def childCreated = false
-        //def childSensorDevice = null
-        //def eventMap = null
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
@@ -91,7 +84,7 @@ def parse(String description) {
 	            	break
         
         		case 1: //Set
-					processSetCommand(sensorDeviceId)
+					processSetCommand(sensorDeviceId, command, type, payload)
 	            	break
 
         		case 2: //Request
@@ -200,14 +193,13 @@ def boolean findChild(childSensor) {
 def processPresentationCommand(sensorDeviceId, node, sensor, payload, type) 
 {
 	log.debug "Processing present command"
-	log.debug "node/sensor (${node}/${sensor})"
 
 	def childFound = false
 	def childCreated = false
 
 	try 
 	{
-	    if (sensor != "255")  // don't do this for the gateway node
+	    if (sensor != "255")  // don't do this for the gateway
 		{
 			childFound = findChild(sensorDeviceId)
 			if (!childFound) 
@@ -225,7 +217,7 @@ def processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 			} 
 			else 
 			{
-				log.debug "Sensor found"
+				log.debug "Sensor presented (${sensorDeviceId})"
 			}
 		}
 	}
@@ -236,33 +228,43 @@ def processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 }
 
 //def processSetCommand(sensorDeviceId, type, payload) {
-def processSetCommand(sensorDeviceId) {
-	// Set is an update to a sensor value, so build the event map
-	
-	log.debug "Processing set command for sensorDeviceId: ${sensorDeviceId}"
+def processSetCommand(sensorDeviceId, command, type, payload) {
+	// Update the sensor data
+	if (command = 2)
+	{
+		log.debug "Processing set command for sensorDeviceId: ${sensorDeviceId}"
 
-    def childSensorDevice = null
-	def eventMap = null
-    def deviceType = null
+    	def childSensorDevice = null
+		def eventMap = null
+    	def deviceType = null
 
-	try {
-		childDevices.each {
-			if (it.deviceNetworkId == sensorDeviceId) {
+		try 
+		{
+			childDevices.each 
+			{
+				if (it.deviceNetworkId == sensorDeviceId) 
+				{
 					childSensorDevice = it
+				}
 			}
-		}
         
-		deviceType = childSensorDevice.getTypeName()
-//		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
-	}
-	catch (e) {
-		log.error "Error finding child device: ${e}"
-	}
+			deviceType = childSensorDevice.getTypeName()
+			eventMap = buildEventMap(sensorDeviceId, deviceType, command, type, payload)
 
+			log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+			//	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+		    log.debug "Device Type: ${deviceType}"
+		}
+		catch (e) 
+		{
+			log.error "Error finding child device: ${e}"
+		}
+	}
+	else
+	{
+		log.debug "processSetCommand invalid command: ${command}"
+	}
 	    
-//	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-//	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
-    log.debug "Device Type: ${deviceType}"
 }
 
 def processInternalCommand(sensorDeviceId, type, payload) {
@@ -277,8 +279,6 @@ def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
 
 	def mapResult = [:]
 
-//	log.debug "buidldEventMap"
-    
     String sensorAttribute = ""
     String sensorValue = ""
    
