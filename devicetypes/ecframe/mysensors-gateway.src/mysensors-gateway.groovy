@@ -75,8 +75,8 @@ def parse(String description) {
         def ack = param[3]
         def type = param[4].toInteger()
         def payload = param[5]
-		def childFound = false
-        def childCreated = false
+		//def childFound = false
+        //def childCreated = false
         //def childSensorDevice = null
         //def eventMap = null
         
@@ -87,7 +87,7 @@ def parse(String description) {
 		try {
 			switch (command) {
         		case 0: //Presentation
-					log.debug "Presentation command - Not implemented"
+					processPresentationCommand(sensorDeviceId)
 	            	break
         
         		case 1: //Set
@@ -108,7 +108,7 @@ def parse(String description) {
 			}   
 		}
    		catch (Exception e) {
-       		log.error "switch try/catch command"
+       		log.error "switch try/catch command ${command}"
    		}
 		
         /*
@@ -190,11 +190,30 @@ def boolean findChild(childSensor) {
        	}
 	}
    	catch (e) {
-       	log.error "findChild error: " + e
+       	log.error "findChild error ${childSensor}: " + e
     }
     
 	return exists
 
+}
+
+def processPresentationCommand(sensorDeviceId) {
+	log.debug "Processing set command"
+
+	def childFound = false
+
+	try {
+		childFound = findChild(sensorDeviceId)
+		if (!childFound) {
+			log.debug "Sensor not found, create a new one."
+		} 
+		else {
+			log.debug "Sensor found"
+		}
+	}
+	catch (e) {
+		log.error "Presentation error ${sensorDeviceId}: " + e
+	}
 }
 
 //def processSetCommand(sensorDeviceId, type, payload) {
