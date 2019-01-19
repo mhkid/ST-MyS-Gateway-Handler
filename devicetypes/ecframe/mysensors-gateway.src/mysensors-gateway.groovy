@@ -64,8 +64,8 @@ def parse(String description) {
     def children = device.childDevices
     
 	log.debug " "
-	log.debug "header: $header"
-    log.debug "Gateway message: $body"
+//	  log.debug "header: $header"
+//    log.debug "Gateway message: $body"
 
     if (body) {
         def param = body.split(";")
@@ -203,7 +203,6 @@ def processSetCommand(sensorDeviceId) {
 	
 	log.debug "Processing set command for sensorDeviceId: ${sensorDeviceId}"
 
-/*
     def childSensorDevice = null
 	def eventMap = null
     def deviceType = null
@@ -216,17 +215,16 @@ def processSetCommand(sensorDeviceId) {
 		}
         
 		deviceType = childSensorDevice.getTypeName()
-		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
+//		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
 	}
 	catch (e) {
 		log.error "Error finding child after building map: ${e}"
 	}
 
 	    
-	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+//	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+//	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
     log.debug "Device Type: ${deviceType}"
-*/
 }
 
 def processInternalCommand(sensorDeviceId, type, payload) {
