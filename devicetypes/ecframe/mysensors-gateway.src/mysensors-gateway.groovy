@@ -17,10 +17,9 @@
  *    Date        Who            What
  *    ----        ---            ----
  *    2017-07-30  Eric Frame     Original Creation
+ *    2018-01-17  Eric Frame	 Gateway refactor and cleanup
  */
  
-//import groovy.json.JsonSlurper
-
 metadata {
 	definition (name: "MySensors Gateway", namespace: "ecframe", author: "Eric Frame") {
         capability "Configuration"
@@ -65,9 +64,9 @@ def parse(String description) {
     def children = device.childDevices
     
 	log.debug " "
-	log.debug "header: $header"
-    log.debug "Gateway message: $body"
-    
+//	  log.debug "header: $header"
+//    log.debug "Gateway message: $body"
+
     if (body) {
         def param = body.split(";")
         def node = param[0]
@@ -76,17 +75,46 @@ def parse(String description) {
         def ack = param[3]
         def type = param[4].toInteger()
         def payload = param[5]
-		def childFound = false
-        def childCreated = false
+		//def childFound = false
+        //def childCreated = false
         //def childSensorDevice = null
         //def eventMap = null
         
         log.debug "node:${node} | sensor:${sensor} | command:${command} | ack:${ack} | type:${type} | payload:${payload}"
         
+		sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
+
+		try {
+			switch (command) {
+        		case 0: //Presentation
+					processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
+	            	break
+        
+        		case 1: //Set
+					processSetCommand(sensorDeviceId)
+	            	break
+
+        		case 2: //Request
+					log.debug "Request command - Not implemented"
+	            	break
+					
+        		case 3: //Request
+					log.debug "Internal command - Not implemented"
+	            	break
+					
+		  		default:
+             		log.debug "command not implemented: ${command}"
+
+			}   
+		}
+   		catch (Exception e) {
+       		log.error "switch try/catch command ${command}"
+   		}
+		
+        /*
 		// don't process internal commands at this point.  Later implementation
-//        if (command != 3) {
-			sensorNodeId = device.deviceNetworkId + "-" + node
-			sensorId = device.deviceNetworkId + "-" + node + "-" + sensor
+        if (command != 3) {
+			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
         
         	log.debug "sensorNodeId: ${sensorNodeId}"
         	log.debug "sensorId: ${sensorId}"
@@ -136,7 +164,8 @@ def parse(String description) {
         	catch (e) {
         		log.error "Error processing sensor payload: ${e}"
         	}
-//        }  // command != 3
+        }  // command != 3
+		*/
 	return
     }
 
@@ -166,15 +195,55 @@ def boolean findChild(childSensor) {
        	}
 	}
    	catch (e) {
-       	log.error "findChild error: " + e
+       	log.error "findChild error ${childSensor}: " + e
     }
     
 	return exists
 
 }
 
-def processSetCommand(sensorNodeId, type, payload) {
+def processPresentationCommand(sensorDeviceId, node, sensor, payload, type) 
+{
+	log.debug "Processing present command"
+
+	def childFound = false
+	def childCreated = false
+
+	try 
+	{
+	    if (sensor != 255)  // don't do this for the gateway node
+		{
+			childFound = findChild(sensorDeviceId)
+			if (!childFound) 
+			{
+				log.debug "Sensor not found, createing a new one."
+				childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+       			if (!childCreated) 
+				{
+                	log.error "Child sensor ${sensorDeviceId} not created"
+    			}
+            	else 
+				{
+	            	log.info "Child sensor ${sensorDeviceId} created"
+            	}
+			} 
+			else 
+			{
+				log.debug "Sensor found"
+			}
+		}
+	}
+	catch (e) 
+	{
+		log.error "Presentation error ${sensorDeviceId}: " + e
+	}
+}
+
+//def processSetCommand(sensorDeviceId, type, payload) {
+def processSetCommand(sensorDeviceId) {
 	// Set is an update to a sensor value, so build the event map
+	
+	log.debug "Processing set command for sensorDeviceId: ${sensorDeviceId}"
 
     def childSensorDevice = null
 	def eventMap = null
@@ -188,15 +257,15 @@ def processSetCommand(sensorNodeId, type, payload) {
 		}
         
 		deviceType = childSensorDevice.getTypeName()
-		eventMap = buildEventMap(sensorNodeId, deviceType, 1, type, payload)
+//		eventMap = buildEventMap(sensorDeviceId, deviceType, 2, type, payload)
 	}
 	catch (e) {
-		log.error "Error finding child after building map: ${e}"
+		log.error "Error finding child device: ${e}"
 	}
 
 	    
-	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+//	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+//	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
     log.debug "Device Type: ${deviceType}"
 }
 
@@ -350,43 +419,69 @@ def Map processTempHumidity(String value) {
 private boolean createChildDevice(String deviceId, String deviceName, Integer deviceType, String nodeId, String sensorId) {
 
 	def status = false
+   	def deviceHandlerName = ""
 
-    if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
-    {
-		log.debug "createChildDevice:  Creating Child Device ${deviceName} | ${deviceId} | ${deviceType}"
+	if (deviceName != "" && deviceName != null)
+	{
+    	if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
+    	{
+			log.debug "createChildDevice:  Creating Child Device ${deviceName} | ${deviceId} | ${deviceType}"
 
-		try 
-        {
-        	def deviceHandlerName = ""
-            switch (deviceName.trim()) {
-            	case "TempNode":
-					deviceHandlerName = "MySensors Temperature Node" 
-                	break
-                default:
-               		log.error "No Child Device Handler case for ${deviceName}"
-           	}
-                    
-            log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
-            if (deviceHandlerName != "") {
-                log.debug "adding device"
-				addChildDevice(deviceHandlerName, "${deviceId}", null,
-		      		[completedSetup: true, label: "${deviceName}", 
-                	isComponent: false, componentLabel: "${deviceName}"])
+			try 
+        	{
+				deviceHandlerName = getHandlerName(deviceType)
+			
+            	log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
 
-				status = true
-        	}   
-            else {
-              // device handler didn't get set
-              throw new Exception("deviceHandlerName not set");
-            }
-    	} catch (e) {
-        	log.error "Child device creation failed with error = ${e}"
-    	}
-        
-	} 
-    
+            	if (deviceHandlerName != "") 
+				{
+                	log.debug "adding device"
+					addChildDevice(deviceHandlerName, "${deviceId}", null,
+		      		 	[completedSetup: true, label: "${deviceName}", 
+                	 	isComponent: false, componentLabel: "${deviceName}"])
+
+					status = true
+        		}   
+            	else 
+				{
+              		// device handler didn't get set
+              		throw new Exception("deviceHandlerName not set");
+            	}
+    		} 
+			catch (e) 
+			{
+        		log.error "Child device creation failed with error = ${e}"
+    		}
+		} 
+	}
+	else
+	{
+		log.error "Can't create child device without a device name"
+	}
+
     return status
-  
+}
+
+private String getHandlerName(deviceType) {
+
+	def handlerName = ""
+
+	log.debug "getHandlerName deviceType ${deviceType}"
+
+  	switch (deviceType) {
+        case 1:               // MySensors S_MOTION
+           	handlerName = "MySensors Motion Sensor"
+           	break
+		case 23:              // MySensors s_CUSTOM
+       		handlerName = "MySensors Temperature Sensor" 
+           	break
+	    default: 
+           	log.error "No Child Device Handler case for ${deviceName}"
+			handlerName = ""
+	}
+
+	return handlerName
+
 }
 
 def httpGatewayRequest() {
