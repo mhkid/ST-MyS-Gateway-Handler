@@ -252,8 +252,8 @@ def processSetCommand(sensorDeviceId, command, type, payload) {
 			eventMap = buildEventMap(sensorDeviceId, deviceType, command, type, payload)
 
 			log.debug "name: " + eventMap.name + " | value: " + eventMap.value
-			//	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
-		    log.debug "Device Type: ${deviceType}"
+			childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
+		    log.debug "event sent"
 		}
 		catch (e) 
 		{
