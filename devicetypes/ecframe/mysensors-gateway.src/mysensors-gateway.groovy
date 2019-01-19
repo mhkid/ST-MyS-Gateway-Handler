@@ -421,6 +421,10 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
 
 private String getHandlerName(deviceType) {
 
+	def deviceHandlerName = ""
+
+	log.debug "getHandlerName deviceType ${deviceType}"
+
   	switch (deviceType) {
         case 1:               // MySensors S_MOTION
            	deviceHandlerName = "MySensors Motion Sensor"
@@ -432,6 +436,8 @@ private String getHandlerName(deviceType) {
            	log.error "No Child Device Handler case for ${deviceName}"
 			deviceHandlerName = ""
 	}
+
+	return deviceHandlerName
 
 }
 
