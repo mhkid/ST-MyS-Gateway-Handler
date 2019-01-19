@@ -207,7 +207,7 @@ def processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 
 	try 
 	{
-	    if (sensor != 255)  // don't do this for the gateway node
+	    if (sensor != "255")  // don't do this for the gateway node
 		{
 			childFound = findChild(sensorDeviceId)
 			if (!childFound) 
