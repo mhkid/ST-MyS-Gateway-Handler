@@ -386,36 +386,44 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
 	def status = false
    	def deviceHandlerName = ""
 
-    if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
-    {
-		log.debug "createChildDevice:  Creating Child Device ${deviceName} | ${deviceId} | ${deviceType}"
+	if (deviceName != "" && deviceName != null)
+	{
+    	if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
+    	{
+			log.debug "createChildDevice:  Creating Child Device ${deviceName} | ${deviceId} | ${deviceType}"
 
-		try 
-        {
-			deviceHandlerName = getHandlerName(deviceType)
+			try 
+        	{
+				deviceHandlerName = getHandlerName(deviceType)
 			
-            log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
+            	log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
 
-            if (deviceHandlerName != "") 
-			{
-                log.debug "adding device"
-				// addChildDevice(deviceHandlerName, "${deviceId}", null,
-		      	// 	[completedSetup: true, label: "${deviceName}", 
-                // 	isComponent: false, componentLabel: "${deviceName}"])
+            	if (deviceHandlerName != "") 
+				{
+                	log.debug "adding device"
+					addChildDevice(deviceHandlerName, "${deviceId}", null,
+		      		 	[completedSetup: true, label: "${deviceName}", 
+                	 	isComponent: false, componentLabel: "${deviceName}"])
 
-				status = true
-        	}   
-            else 
+					status = true
+        		}   
+            	else 
+				{
+              		// device handler didn't get set
+              		throw new Exception("deviceHandlerName not set");
+            	}
+    		} 
+			catch (e) 
 			{
-              // device handler didn't get set
-              throw new Exception("deviceHandlerName not set");
-            }
-    	} 
-		catch (e) 
-		{
-        	log.error "Child device creation failed with error = ${e}"
-    	}
-	} 
+        		log.error "Child device creation failed with error = ${e}"
+    		}
+		} 
+	}
+	else
+	{
+		log.error "Can't create child device without a device name"
+	}
+
     return status
 }
 
