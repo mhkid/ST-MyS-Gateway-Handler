@@ -416,7 +416,7 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
     return status
 }
 
-private String getHandlerName() {
+private String getHandlerName(deviceType) {
 
   	switch (deviceType) {
         case 1:               // MySensors S_MOTION
