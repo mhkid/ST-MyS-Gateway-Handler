@@ -85,11 +85,11 @@ def parse(String description) {
 		try {
 			switch (command) {
         		case 0: //Presentation
-					log.debug "Presentation command"
+					log.debug "Presentation command - Not implemented"
 	            	break
         
         		case 1: //Set
-					log.debug "Set command"
+					processSetCommand()
 	            	break
 
         		case 2: //Request
@@ -195,9 +195,13 @@ def boolean findChild(childSensor) {
 
 }
 
-def processSetCommand(sensorDeviceId, type, payload) {
+//def processSetCommand(sensorDeviceId, type, payload) {
+def processSetCommand() {
 	// Set is an update to a sensor value, so build the event map
+	
+	log.debug "Processing set command"
 
+/*
     def childSensorDevice = null
 	def eventMap = null
     def deviceType = null
@@ -220,6 +224,7 @@ def processSetCommand(sensorDeviceId, type, payload) {
 	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
 	childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value, isStateChanged: "true")
     log.debug "Device Type: ${deviceType}"
+*/
 }
 
 def processInternalCommand(sensorDeviceId, type, payload) {
