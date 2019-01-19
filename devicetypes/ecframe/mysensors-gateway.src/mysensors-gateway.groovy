@@ -230,7 +230,7 @@ def processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 //def processSetCommand(sensorDeviceId, type, payload) {
 def processSetCommand(sensorDeviceId, command, type, payload) {
 	// Update the sensor data
-	if (command == 2)
+	if (command == 1)
 	{
 		log.debug "Processing set command for sensorDeviceId: ${sensorDeviceId}"
 
