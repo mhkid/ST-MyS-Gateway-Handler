@@ -87,7 +87,7 @@ def parse(String description) {
 		try {
 			switch (command) {
         		case 0: //Presentation
-					processPresentationCommand(sensorDeviceId)
+					processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 	            	break
         
         		case 1: //Set
@@ -197,21 +197,35 @@ def boolean findChild(childSensor) {
 
 }
 
-def processPresentationCommand(sensorDeviceId) {
+def processPresentationCommand(sensorDeviceId, node, sensor, payload, type) 
+{
 	log.debug "Processing set command"
 
 	def childFound = false
 
-	try {
+	try 
+	{
 		childFound = findChild(sensorDeviceId)
-		if (!childFound) {
-			log.debug "Sensor not found, create a new one."
+		if (!childFound) 
+		{
+			log.debug "Sensor not found, createing a new one."
+			childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+       		if (!childCreated) 
+			{
+                log.error "Child sensor ${sensorDeviceId} not created"
+    		}
+            else 
+			{
+	            log.info "Child sensor ${sensorDeviceId} created"
+            }
 		} 
-		else {
+		else 
+		{
 			log.debug "Sensor found"
 		}
 	}
-	catch (e) {
+	catch (e) 
+	{
 		log.error "Presentation error ${sensorDeviceId}: " + e
 	}
 }
@@ -366,6 +380,7 @@ def Map processTempHumidity(String value) {
 private boolean createChildDevice(String deviceId, String deviceName, Integer deviceType, String nodeId, String sensorId) {
 
 	def status = false
+   	def deviceHandlerName = ""
 
     if ( device.deviceNetworkId =~ /^[A-Z0-9]{12}$/)
     {
@@ -373,38 +388,47 @@ private boolean createChildDevice(String deviceId, String deviceName, Integer de
 
 		try 
         {
-        	def deviceHandlerName = ""
-        	switch (deviceType) {
-                case 1:               // MySensors S_MOTION
-                	deviceHandlerName = "MySensors Motion Sensor"
-                	break
-				case 23:              // MySensors s_CUSTOM
-              		deviceHandlerName = "MySensors Temperature Sensor" 
-                	break
-				default: 
-                	log.error "No Child Device Handler case for ${deviceName}"
-      		}
+			deviceHandlerName = getHandlerName(deviceType)
+			
             log.debug "xxx deviceType:${deviceType} | deviceHandlerName:${deviceHandlerName} | deviceId:${deviceId} | deviceName:${deviceName}"
-            if (deviceHandlerName != "") {
+
+            if (deviceHandlerName != "") 
+			{
                 log.debug "adding device"
-				addChildDevice(deviceHandlerName, "${deviceId}", null,
-		      		[completedSetup: true, label: "${deviceName}", 
-                	isComponent: false, componentLabel: "${deviceName}"])
+				// addChildDevice(deviceHandlerName, "${deviceId}", null,
+		      	// 	[completedSetup: true, label: "${deviceName}", 
+                // 	isComponent: false, componentLabel: "${deviceName}"])
 
 				status = true
         	}   
-            else {
+            else 
+			{
               // device handler didn't get set
               throw new Exception("deviceHandlerName not set");
             }
-    	} catch (e) {
+    	} 
+		catch (e) 
+		{
         	log.error "Child device creation failed with error = ${e}"
     	}
-        
 	} 
-    
     return status
-  
+}
+
+private String getHandlerName() {
+
+  	switch (deviceType) {
+        case 1:               // MySensors S_MOTION
+           	deviceHandlerName = "MySensors Motion Sensor"
+           	break
+		case 23:              // MySensors s_CUSTOM
+       		deviceHandlerName = "MySensors Temperature Sensor" 
+           	break
+	    default: 
+           	log.error "No Child Device Handler case for ${deviceName}"
+			deviceHandlerName = ""
+	}
+
 }
 
 def httpGatewayRequest() {
