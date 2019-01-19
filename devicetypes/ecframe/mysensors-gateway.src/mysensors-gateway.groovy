@@ -202,6 +202,7 @@ def processPresentationCommand(sensorDeviceId, node, sensor, payload, type)
 	log.debug "Processing set command"
 
 	def childFound = false
+	def childCreated = false
 
 	try 
 	{
