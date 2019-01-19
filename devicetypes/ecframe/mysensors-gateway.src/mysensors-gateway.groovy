@@ -53,13 +53,13 @@ metadata {
 	}
 }
 
-
 // parse events into attributes
 def parse(String description) {
     def msg = parseLanMessage(description);
     def header = msg.header
     def body = msg.body
-    def sensorDeviceId
+    def sensorNodeId
+    def sensorId
     def evt = [:]
     
 	log.debug " "
@@ -109,40 +109,43 @@ def parse(String description) {
         if (command != 3) {
 			sensorDeviceId = device.deviceNetworkId + "-" + node + "-" + sensor
         
-        	log.debug "sensorDeviceId: ${sensorDeviceId}"
+        	log.debug "sensorNodeId: ${sensorNodeId}"
+        	log.debug "sensorId: ${sensorId}"
         
-        	childFound = findChild(sensorDeviceId) 
+        	childFound = findChild(sensorNodeId) 
         	try {
         		if (!childFound) {
                 	// Sensor presentation message.  Type 17 is S_ARDUINO_NODE, this doesn't need to be created, so just ignore it.
-                	if (command == 0  && type !=17) {
-                		// Create the sensor
-	            		childCreated = createChildDevice(sensorDeviceId, payload, type, node, sensor)
+                    
+					if (command == 3  && type == 11) {
+                		// Create the sensor node
+	            		childCreated = createChildDevice(sensorNodeId, payload, type, node, sensor)
     	        		if (!childCreated) {
-	                        log.error "Child sensor ${sensorDeviceId} not created"
-							//throw new Exception("Child sensor ${sensorDeviceId} not created");
+							throw new Exception("Child sensor ${sensorNodeId} not created");
         	    		}
                         else {
-	                        log.info "Child sensor ${sensorDeviceId} created"
+	                        log.info "Child sensor ${sensorNodeId} created"
                         }
             	    }
                 	else {
-                		log.error "Child sensor ${sensorDeviceId} doesn't exist"
-        				//throw new Exception("Child sensor ${sensorDeviceId} doesn't exist");
+                		log.error "Child sensor ${sensorNodeId} doesn't exist"
+        				//throw new Exception("Child sensor ${sensorNodeId} doesn't exist");
                 	}
         		}
         		else {
-                	// childs exists so check to see if this is an update to sensor value
-                    switch (command) {
-                    	case 1:
-                        	processSetCommand(sensorDeviceId, type, payload)
+                	// childs exists so update sensor value
+                    log.debug "Child ${sensorNodeId} exists: "
+
+					switch (command) {
+                    	case 1:       // set value
+                        	processSetCommand(sensorNodeId, type, payload)
                         	break
                             
                         case 2:
                         	break
                             
-                        case 3:
-                        	processInternalCommand(sensorDeviceId, type, payload)
+                        case 3:      // internal command
+                        	processInternalCommand(sensorNodeId, type, payload)
                         	break
                             
                         default:
@@ -171,11 +174,13 @@ def refresh() {
 
 def boolean findChild(childSensor) {
     def exists = false
-	//log.debug "finding: ${childSensor}"
+	log.debug "finding: ${childSensor}"
 
-  // loop through all the child devices to see if this one already exists
+    // loop through all the child devices to see if this one already exists
 	try {
+    	log.debug "before childDevices.each"
         childDevices.each {
+            log.debug "device: ${it.deviceNetworkId}"
            	if (it.deviceNetworkId == childSensor) {
                 // sensor device exists
                 exists = true
@@ -267,12 +272,30 @@ def processSetCommand(sensorDeviceId, command, type, payload) {
 	    
 }
 
-def processInternalCommand(sensorDeviceId, type, payload) {
+def processInternalCommand(sensorNodeId, type, payload) {
 
-	def childSensorDevice = null
-    def eventMap = null
-    
-    
+    def childSensorDevice = null
+	def eventMap = null
+    def deviceType = null
+
+	try {
+		childDevices.each {
+			if (it.deviceNetworkId == sensorNodeId) {
+					childSensorDevice = it
+			}
+		}
+        
+		deviceType = childSensorDevice.getTypeName()
+		eventMap = buildEventMap(sensorNodeId, deviceType, 3, type, payload)
+	}
+	catch (e) {
+		log.error "Error finding child after building map: ${e}"
+	}
+
+	    
+	log.debug "name: " + eventMap.name + " | value: " + eventMap.value
+	//childSensorDevice.sendEvent(name: eventMap.name, value: eventMap.value)
+    log.debug "Device Type: ${deviceType}"
 }
 
 def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
@@ -287,20 +310,30 @@ def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
 
 	try {
 
-		switch (commandType) {
-        	case 16:           //MySensors V_TRIPPED
-            	mapResult = processMotion(payload)
-            	break
+        if (command==1) {
+			switch (commandType) {
+        		case 0:           //V_TEMP
+             		mapResult = processTemperature(payload)
+             		break
+                
+        		case 1:           //V_HUM
+            		mapResult = processHumidity(payload)
+            		break
         
-        	case 24:           //MySensors V_VAR1
-        		// Temperature / Humdity / Battery
-             	mapResult = processTempHumidity(payload)
-             	break
+		  		default:
+             		log.debug "type unknown: ${commandType}"
 
-		  	default:
-             	log.debug "type unknown: ${commandType}"
-
-		}   
+			}   
+        } else if (command==3) {
+			switch (commandType) {
+        		case 0:           //I_BATTERY_LEVEL
+             		mapResult = processBatteryLevel(payload)
+             		break
+                    
+		  		default:
+             		log.debug "type unknown: ${commandType}"
+			}   
+        }
 
 		log.debug "mapResult: ${mapResult.name} | ${mapResult.value}"
 
@@ -312,32 +345,34 @@ def Map buildEventMap(sensorDevice, deviceType, command, commandType, payload) {
 return mapResult
 }
 
-def Map processMotion(String value) {
-	
-    def sensorData = value.replaceAll('\n', '')
+def Map processTemperature(String value) {
+    
     def mapReturn = [:]
     
-	try {
-    	switch (sensorData) {
-        	case "0":
-				mapReturn.put('name', "motion")
-    			mapReturn.put('value', "inactive")
-                break
-            
-        	case "1":
-				mapReturn.put('name', "motion")
-    			mapReturn.put('value', "active")
-                break
+    mapReturn.put('name', 'temperature')
+    mapReturn.put('value', value)
 
-			default:
-           		log.debug "unknown sensor value type motion: ${value}"
-        }
-    }
-    catch (e) {
-    	log.error "processMotion error: ${e}"
-    }
+	return mapReturn
+}
+
+def Map processHumidity(String value) {
     
-    return mapReturn
+    def mapReturn = [:]
+    
+    mapReturn.put('name', 'humidity')
+    mapReturn.put('value', value)
+
+	return mapReturn
+}
+
+def Map processBatteryLevel(String value) {
+    
+    def mapReturn = [:]
+    
+    mapReturn.put('name', 'battery')
+    mapReturn.put('value', value)
+
+	return mapReturn
 }
 
 def Map processTempHumidity(String value) {
